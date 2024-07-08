@@ -4,7 +4,9 @@
   "description": "backend-mega-project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "type": "module",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon src/index.js"
   },
   "keywords": [
     "javascript",
@@ -12,5 +14,8 @@
     "chai"
   ],
   "author": "Kushaal Rana",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
 }
