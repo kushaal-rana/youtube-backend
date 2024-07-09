@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "backend-mega-project",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "type": "module",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
   },
   "keywords": [
     "javascript",
@@ -18,5 +18,10 @@
   "devDependencies": {
     "nodemon": "^3.1.4",
     "prettier": "^3.3.2"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.5.0"
   }
 }
