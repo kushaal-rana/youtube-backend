@@ -15,7 +15,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
   } catch (error) {
     throw new ApiError(
       500,
-      "Something went wrong while generating refresh and access token"
+      `${error}: Something went wrong while generating refresh and access token`
     );
   }
 };
@@ -132,6 +132,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordCorrect) {
     throw new ApiError(401, "Invalid User Credentials");
   }
+
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id
   );
@@ -139,7 +140,7 @@ const loginUser = asyncHandler(async (req, res) => {
   // *current user's refresh token is empty as we have another refresh token which we got from the method, Hence we can upadte the user object or we can do DB call and get the details of another user.(with refresh token as we have saved)
   // user.refreshToken = refreshToken this will also work or below thing also works
 
-  const loggedInUser = User.findById(user._id).select(
+  const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken" // ? before sending to user we dont want to send password & refresh tokens(refresh token dono why he removed as we are sending it in cookies may be?)
   );
 
@@ -160,7 +161,7 @@ const loginUser = asyncHandler(async (req, res) => {
         {
           user: loggedInUser,
           accessToken,
-          refreshToken, //sending tokens as for mobile devices cookies are not supported
+          refreshToken,
         },
         "User logged In Successfully"
       )
