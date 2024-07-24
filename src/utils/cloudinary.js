@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs"; // node js file system inbuilt
+import { User } from "./models/user.model.js";
 
 // Configuration
 cloudinary.config({
@@ -28,4 +29,17 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-export { uploadOnCloudinary };
+const deleteOldImage = async (user) => {
+  try {
+    if (user?.avatar) {
+      const response = await cloudinary.uploader.destroy(userId, avatar, {
+        resource_type: "image",
+      });
+      console.log(response, "Delete hua kya check kar");
+    }
+  } catch (error) {
+    console.error("Failed to delete old avatar image", error);
+  }
+}; //check once
+
+export { uploadOnCloudinary, deleteOldImage };

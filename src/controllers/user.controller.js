@@ -243,7 +243,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
-    .json(200, req.user, "Current User fetched successfully");
+    .json(new ApiResponse(200, req.user, "Current User fetched successfully"));
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
@@ -273,7 +273,7 @@ const updateUserAvatarImage = asyncHandler(async (req, res) => {
   }
 
   const avatar = await uploadOnCloudinary(localAvatarPath);
-  if (!avatar) {
+  if (!avatar.url) {
     throw new ApiError(400, "Failed to upload avatar on Cloudinary");
   }
 
@@ -286,7 +286,7 @@ const updateUserAvatarImage = asyncHandler(async (req, res) => {
     },
     { new: true }
   ).select("-password");
-
+  // TODO: Delete old image (check utility in cloudinary.js) Check this once
   return res
     .status(200)
     .json(new ApiResponse(200, user, "Avatar Image Updated successfully"));
@@ -319,6 +319,78 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Cover Image Updated successfully"));
 });
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username?.trim()) throw new ApiError(400, "Username is missing");
+
+  const channel = await User.aggregate([
+    //we can even do User.find() but use match here
+    {
+      //first pipeline to match users
+      $match: { username: username?.toLowerCase() }, //finds a particular document form all documents
+    },
+    {
+      // how many subscribers he has through channel
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        //how many he has subscribred through subscriber
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        //add extra fields which we need
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribredTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?.id, "$subscribers.subscriber"] }, //in checks if id is present or nto in subscriber
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        // project fields which we want to send back or fields which we want to show
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+      },
+    },
+  ]);
+
+  if (!channel?.length) {
+    throw new ApiError(404, "Channel Does Not Exist");
+  }
+  console.log(channel);
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "User Channel Fetched Successfully")
+    );
+});
+
 export {
   registerUser,
   loginUser,
@@ -329,4 +401,5 @@ export {
   updateAccountDetails,
   updateUserAvatarImage,
   updateUserCoverImage,
+  getUserChannelProfile,
 };
