@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -173,7 +174,9 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user?._id,
     {
-      $set: { refreshToken: undefined },
+      // $set: { refreshToken: undefined }, this is not working
+      // $set: { refreshToken: null }, //this works but not the best approach
+      $unset: { refreshToken: 1 }, //this removes the field from document
     },
     {
       new: true, //returned response has new value now (with refreshtoken undefined) from DB
@@ -197,7 +200,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   if (!incomingRefreshToken) throw new ApiError(401, "Unauthorized request");
 
   try {
-    const decodedToken = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
 
     const user = await User.findById(decodedToken?._id);
     if (!user) throw new ApiError(404, "Invalid Refresh Token");
@@ -214,12 +220,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     };
     return res
       .status(200)
-      .cookie(accessToken, options)
-      .cookie(refreshToken, options)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
       .json(
         new ApiResponse(
           200,
-          { accessToken, newRefreshToken },
+          { accessToken, refreshToken: newRefreshToken },
           "Access Token Refresh"
         )
       );
@@ -319,12 +325,13 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Cover Image Updated successfully"));
 });
 
+//Aggregation Pipeline 1
 const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
   if (!username?.trim()) throw new ApiError(400, "Username is missing");
 
   const channel = await User.aggregate([
-    //we can even do User.find() but use match here
+    //we can even do User.find({username}) but use match here
     {
       //first pipeline to match users
       $match: { username: username?.toLowerCase() }, //finds a particular document form all documents
@@ -351,14 +358,14 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       $addFields: {
         //add extra fields which we need
         subscribersCount: {
-          $size: "$subscribers",
+          $size: "$subscribers", // size will give size of the finalField
         },
         channelsSubscribedToCount: {
-          $size: "$subscribredTo",
+          $size: "$subscribedTo",
         },
         isSubscribed: {
           $cond: {
-            if: { $in: [req.user?.id, "$subscribers.subscriber"] }, //in checks if id is present or nto in subscriber
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] }, //in checks if id is present or into in subscriber(in checks in obj and array also For now we are checking in obj subscribers)
             then: true,
             else: false,
           },
@@ -383,7 +390,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   if (!channel?.length) {
     throw new ApiError(404, "Channel Does Not Exist");
   }
-  console.log(channel);
+  console.log(channel); // to check data type of aggreafate pipeline returns
   return res
     .status(200)
     .json(
@@ -406,6 +413,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         foreignField: "_id",
         as: "watchHistory",
         pipeline: [
+          //for getting data of owner from users
           {
             $lookup: {
               from: "users",
@@ -424,6 +432,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
             },
           },
           {
+            //for frontend to send data properly
             $addFields: {
               owner: {
                 $first: "$owner",

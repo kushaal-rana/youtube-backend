@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import connectDB from "./db/index.js";
 import { app } from "./app.js";
 dotenv.config({ path: "./.env" });
-connectDB()
+connectDB() //this is async method which will always return promise
   .then(() => {
     app.on("error", (error) => {
       console.log("Error: ", error);
@@ -20,7 +20,7 @@ connectDB()
 
 /*
 const app = express();
-(async () => {
+;(async () => {
   try {
     await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`);
     app.listen("error", (error)=>{

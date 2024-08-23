@@ -7,6 +7,7 @@ import {
   changeCurrentPassword,
   getCurrentUser,
   updateUserAvatarImage,
+  updateAccountDetails,
   updateUserCoverImage,
   getUserChannelProfile,
   getWatchHistory,
@@ -34,15 +35,15 @@ router.route("/login").post(loginUser);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/change-password").post(verifyJWT, changeCurrentPassword);
 router.route("/current-user").get(verifyJWT, getCurrentUser);
-router.route("/update-account").patch(verifyJWT, updateAccount);
+router.route("/update-account").patch(verifyJWT, updateAccountDetails);
 router
   .route("/avatar")
   .patch(verifyJWT, upload.single("avatar"), updateUserAvatarImage);
 router
-  .route("/coverImage")
+  .route("/cover-image")
   .patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
 
-router.route("/c/:username").get(verifyJWT, getUserChannelProfile);
+router.route("/channel/:username").get(verifyJWT, getUserChannelProfile);
 router.route("/history").get(verifyJWT, getWatchHistory);
 
 router.route("/logout").post(verifyJWT, logoutUser); //injecting middleware here to verify the jwt the next method in middleware will call the logoutUser
