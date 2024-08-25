@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteOldImage } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -282,6 +282,7 @@ const updateUserAvatarImage = asyncHandler(async (req, res) => {
   if (!avatar.url) {
     throw new ApiError(400, "Failed to upload avatar on Cloudinary");
   }
+  console.log(req.user.avatar, "Public id check kar");
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
@@ -292,7 +293,9 @@ const updateUserAvatarImage = asyncHandler(async (req, res) => {
     },
     { new: true }
   ).select("-password");
-  // TODO: Delete old image (check utility in cloudinary.js) Check this once
+
+  deleteOldImage(req.user?.avatar); //after user updates we have to delete the old image
+
   return res
     .status(200)
     .json(new ApiResponse(200, user, "Avatar Image Updated successfully"));
@@ -319,6 +322,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
       new: true,
     }
   ).select("-password");
+  deleteOldImage(req.user?.coverImage);
 
   return res
     .status(200)
